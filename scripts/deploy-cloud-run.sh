@@ -146,30 +146,58 @@ while [[ $# -gt 0 ]]; do
             usage
             ;;
         -p|--project)
+            if [[ $# -lt 2 || "$2" == -* ]]; then
+                log_error "Missing value for $1"
+                usage 1
+            fi
             PROJECT_ID="$2"
             shift 2
             ;;
         -i|--image)
+            if [[ $# -lt 2 || "$2" == -* ]]; then
+                log_error "Missing value for $1"
+                usage 1
+            fi
             IMAGE_URL="$2"
             shift 2
             ;;
         -s|--service)
+            if [[ $# -lt 2 || "$2" == -* ]]; then
+                log_error "Missing value for $1"
+                usage 1
+            fi
             SERVICE_NAME="$2"
             shift 2
             ;;
         -r|--region)
+            if [[ $# -lt 2 || "$2" == -* ]]; then
+                log_error "Missing value for $1"
+                usage 1
+            fi
             REGION="$2"
             shift 2
             ;;
         -m|--memory)
+            if [[ $# -lt 2 || "$2" == -* ]]; then
+                log_error "Missing value for $1"
+                usage 1
+            fi
             MEMORY="$2"
             shift 2
             ;;
         -c|--cpu)
+            if [[ $# -lt 2 || "$2" == -* ]]; then
+                log_error "Missing value for $1"
+                usage 1
+            fi
             CPU="$2"
             shift 2
             ;;
         --max-instances)
+            if [[ $# -lt 2 || "$2" == -* ]]; then
+                log_error "Missing value for $1"
+                usage 1
+            fi
             MAX_INSTANCES="$2"
             shift 2
             ;;
