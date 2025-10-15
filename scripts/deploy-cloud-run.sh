@@ -56,7 +56,7 @@ FREE TIER NOTES:
     - Use us-central1, us-west1, or us-east1 regions
 
 EOF
-    exit 0
+    exit "${1:-0}"
 }
 
 validate_inputs() {
@@ -203,8 +203,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         *)
             log_error "Unknown option: $1"
-            usage
-            exit 1
+            usage 1
             ;;
     esac
 done
