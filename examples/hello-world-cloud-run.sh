@@ -50,6 +50,7 @@ main() {
     log_info "  - Memory: 256Mi"
     log_info "  - CPU: 1"
     log_info "  - Max instances: 1"
+    log_info "  - Public access: Enabled (--allow-unauthenticated)"
     log_info ""
     
     if ! confirm "Continue with deployment?"; then
@@ -68,6 +69,7 @@ main() {
     log_info "Calling deployment script..."
     
     # Deploy using Google's sample hello container
+    # Note: Using --allow-unauthenticated for public demo access
     "$deploy_script" \
         --project "$project_id" \
         --image gcr.io/cloudrun/hello \
@@ -75,7 +77,8 @@ main() {
         --region us-central1 \
         --memory 256Mi \
         --cpu 1 \
-        --max-instances 1
+        --max-instances 1 \
+        --allow-unauthenticated
     
     log_info ""
     log_info "Example complete!"
