@@ -176,6 +176,7 @@ while [[ $# -gt 0 ]]; do
         *)
             log_error "Unknown option: $1"
             usage
+            exit 1
             ;;
     esac
 done
