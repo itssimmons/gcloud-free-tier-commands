@@ -26,6 +26,7 @@ MAX_INSTANCES="${MAX_INSTANCES:-1}"      # Limit instances to control costs
 MEMORY="${MEMORY:-256Mi}"                # 256Mi is sufficient for many apps
 CPU="${CPU:-1}"                          # 1 vCPU
 CONCURRENCY="${CONCURRENCY:-80}"         # Requests per container instance
+ALLOW_UNAUTHENTICATED="false"            # Default to authenticated access for security
 
 # Functions
 usage() {
@@ -40,11 +41,13 @@ REQUIRED OPTIONS:
     -s, --service       Service name
 
 OPTIONAL:
-    -r, --region        GCP region (default: us-central1)
-    -m, --memory        Memory limit (default: 256Mi)
-    -c, --cpu           CPU limit (default: 1)
-    --max-instances     Max container instances (default: 1)
-    -h, --help          Show this help message
+    -r, --region              GCP region (default: us-central1)
+    -m, --memory              Memory limit (default: 256Mi)
+    -c, --cpu                 CPU limit (default: 1)
+    --max-instances           Max container instances (default: 1)
+    --allow-unauthenticated   Allow unauthenticated access (makes service public)
+    --no-allow-unauthenticated Require authentication (default, more secure)
+    -h, --help                Show this help message
 
 EXAMPLE:
     $0 --project my-project --image gcr.io/my-project/app:latest --service my-app
@@ -80,6 +83,12 @@ deploy_cloud_run() {
     log_info "Memory: $MEMORY, CPU: $CPU"
     log_info "Max instances: $MAX_INSTANCES"
     
+    if [[ "$ALLOW_UNAUTHENTICATED" == "true" ]]; then
+        log_warn "Service will be publicly accessible (unauthenticated access enabled)"
+    else
+        log_info "Service will require authentication (recommended for security)"
+    fi
+    
     if ! confirm "Do you want to proceed with deployment?"; then
         log_warn "Deployment cancelled by user"
         exit 0
@@ -88,6 +97,14 @@ deploy_cloud_run() {
     # Enable Cloud Run API
     if ! check_api_enabled "$PROJECT_ID" "run.googleapis.com"; then
         enable_api "$PROJECT_ID" "run.googleapis.com" || exit 1
+    fi
+    
+    # Build gcloud command with conditional authentication flag
+    local auth_flag
+    if [[ "$ALLOW_UNAUTHENTICATED" == "true" ]]; then
+        auth_flag="--allow-unauthenticated"
+    else
+        auth_flag="--no-allow-unauthenticated"
     fi
     
     # Deploy to Cloud Run
@@ -100,7 +117,7 @@ deploy_cloud_run() {
         --cpu="$CPU" \
         --max-instances="$MAX_INSTANCES" \
         --concurrency="$CONCURRENCY" \
-        --allow-unauthenticated \
+        "$auth_flag" \
         --quiet; then
         log_info "Deployment successful!"
         
@@ -200,6 +217,14 @@ while [[ $# -gt 0 ]]; do
             fi
             MAX_INSTANCES="$2"
             shift 2
+            ;;
+        --allow-unauthenticated)
+            ALLOW_UNAUTHENTICATED="true"
+            shift
+            ;;
+        --no-allow-unauthenticated)
+            ALLOW_UNAUTHENTICATED="false"
+            shift
             ;;
         *)
             log_error "Unknown option: $1"

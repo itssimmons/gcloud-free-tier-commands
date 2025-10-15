@@ -68,6 +68,8 @@ main() {
     log_info "Calling deployment script..."
     
     # Deploy using Google's sample hello container
+    # Note: Add --allow-unauthenticated flag to make the service publicly accessible
+    # For this hello-world example, we'll make it public for easy testing
     "$deploy_script" \
         --project "$project_id" \
         --image gcr.io/cloudrun/hello \
@@ -75,7 +77,8 @@ main() {
         --region us-central1 \
         --memory 256Mi \
         --cpu 1 \
-        --max-instances 1
+        --max-instances 1 \
+        --allow-unauthenticated
     
     log_info ""
     log_info "Example complete!"
