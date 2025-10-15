@@ -39,7 +39,7 @@ FREE TIER NOTES:
     - Add relevant free tier information here
 
 EOF
-    exit 0
+    exit "${1:-0}"
 }
 
 validate_inputs() {
@@ -80,7 +80,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         *)
             log_error "Unknown option: $1"
-            usage
+            usage 1
             ;;
     esac
 done
