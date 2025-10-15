@@ -26,6 +26,7 @@ MAX_INSTANCES="${MAX_INSTANCES:-1}"      # Limit instances to control costs
 MEMORY="${MEMORY:-256Mi}"                # 256Mi is sufficient for many apps
 CPU="${CPU:-1}"                          # 1 vCPU
 CONCURRENCY="${CONCURRENCY:-80}"         # Requests per container instance
+ALLOW_UNAUTHENTICATED=false              # Default to authenticated access for security
 
 # Functions
 usage() {
@@ -44,16 +45,25 @@ OPTIONAL:
     -m, --memory        Memory limit (default: 256Mi)
     -c, --cpu           CPU limit (default: 1)
     --max-instances     Max container instances (default: 1)
+    --allow-unauthenticated     Allow unauthenticated access (public)
+    --no-allow-unauthenticated  Require authentication (default)
     -h, --help          Show this help message
 
 EXAMPLE:
     $0 --project my-project --image gcr.io/my-project/app:latest --service my-app
+
+    # Deploy with public access
+    $0 --project my-project --image gcr.io/my-project/app:latest --service my-app --allow-unauthenticated
 
 FREE TIER NOTES:
     - 2 million requests per month
     - 360,000 GB-seconds of memory
     - 180,000 vCPU-seconds of compute
     - Use us-central1, us-west1, or us-east1 regions
+
+SECURITY NOTE:
+    By default, deployed services require authentication. Use --allow-unauthenticated
+    to make the service publicly accessible without authentication.
 
 EOF
     exit 0
@@ -80,6 +90,12 @@ deploy_cloud_run() {
     log_info "Memory: $MEMORY, CPU: $CPU"
     log_info "Max instances: $MAX_INSTANCES"
     
+    if [[ "$ALLOW_UNAUTHENTICATED" == "true" ]]; then
+        log_warn "Service will allow unauthenticated access (public)"
+    else
+        log_info "Service will require authentication (private)"
+    fi
+    
     if ! confirm "Do you want to proceed with deployment?"; then
         log_warn "Deployment cancelled by user"
         exit 0
@@ -90,18 +106,29 @@ deploy_cloud_run() {
         enable_api "$PROJECT_ID" "run.googleapis.com" || exit 1
     fi
     
+    # Build the gcloud command
+    local gcloud_cmd=(
+        gcloud run deploy "$SERVICE_NAME"
+        --image="$IMAGE_URL"
+        --platform=managed
+        --region="$REGION"
+        --project="$PROJECT_ID"
+        --memory="$MEMORY"
+        --cpu="$CPU"
+        --max-instances="$MAX_INSTANCES"
+        --concurrency="$CONCURRENCY"
+        --quiet
+    )
+    
+    # Add authentication flag based on configuration
+    if [[ "$ALLOW_UNAUTHENTICATED" == "true" ]]; then
+        gcloud_cmd+=(--allow-unauthenticated)
+    else
+        gcloud_cmd+=(--no-allow-unauthenticated)
+    fi
+    
     # Deploy to Cloud Run
-    if gcloud run deploy "$SERVICE_NAME" \
-        --image="$IMAGE_URL" \
-        --platform=managed \
-        --region="$REGION" \
-        --project="$PROJECT_ID" \
-        --memory="$MEMORY" \
-        --cpu="$CPU" \
-        --max-instances="$MAX_INSTANCES" \
-        --concurrency="$CONCURRENCY" \
-        --allow-unauthenticated \
-        --quiet; then
+    if "${gcloud_cmd[@]}"; then
         log_info "Deployment successful!"
         
         # Get the service URL
@@ -113,6 +140,13 @@ deploy_cloud_run() {
             --format="value(status.url)")
         
         log_info "Service URL: $service_url"
+        
+        if [[ "$ALLOW_UNAUTHENTICATED" == "false" ]]; then
+            log_info ""
+            log_info "Note: This service requires authentication."
+            log_info "To access it, you need to authenticate or add IAM permissions."
+            log_info "See: https://cloud.google.com/run/docs/authenticating/overview"
+        fi
     else
         log_error "Deployment failed"
         exit 1
@@ -200,6 +234,14 @@ while [[ $# -gt 0 ]]; do
             fi
             MAX_INSTANCES="$2"
             shift 2
+            ;;
+        --allow-unauthenticated)
+            ALLOW_UNAUTHENTICATED=true
+            shift
+            ;;
+        --no-allow-unauthenticated)
+            ALLOW_UNAUTHENTICATED=false
+            shift
             ;;
         *)
             log_error "Unknown option: $1"
