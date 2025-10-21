@@ -75,10 +75,6 @@ while [[ $# -gt 0 ]]; do
             usage
             ;;
         -p|--project)
-            if [[ $# -lt 2 ]]; then
-                log_error "Missing value for $1"
-                usage 1
-            fi
             PROJECT_ID="$2"
             shift 2
             ;;
