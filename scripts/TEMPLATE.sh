@@ -39,7 +39,7 @@ FREE TIER NOTES:
     - Add relevant free tier information here
 
 EOF
-    exit 0
+    exit "${1:-0}"
 }
 
 validate_inputs() {
@@ -75,16 +75,12 @@ while [[ $# -gt 0 ]]; do
             usage
             ;;
         -p|--project)
-            if [[ $# -lt 2 ]]; then
-                log_error "Missing value for $1"
-                usage 1
-            fi
             PROJECT_ID="$2"
             shift 2
             ;;
         *)
             log_error "Unknown option: $1"
-            usage
+            usage 1
             ;;
     esac
 done
